@@ -77,34 +77,22 @@ bot.onMessage(async (channel, user, message, self) => {
     if (self) return;
 
     const currentTime = Date.now();
-    const elapsedTime = (currentTime - lastResponseTime) / 1000; // Time in seconds
+    const elapsedTime = (currentTime - lastResponseTime) / 1000;
 
-    if (ENABLE_CHANNEL_POINTS === 'true' && user['msg-id'] === 'highlighted-message') {
-        console.log(`Highlighted message: ${message}`);
-        if (elapsedTime < COOLDOWN_DURATION) {
-            bot.say(channel, `Cooldown active. Please wait ${COOLDOWN_DURATION - elapsedTime.toFixed(1)} seconds before sending another message.`);
-            return;
-        }
-        lastResponseTime = currentTime; // Update the last response time
+    if (elapsedTime < COOLDOWN_DURATION) return; // クールダウン中なら無視
 
-        const response = await openaiOps.make_openai_call(message);
-        bot.say(channel, response);
+    if (message.trim().length < 5) return; // 短すぎるメッセージは無視
+
+    lastResponseTime = currentTime;
+
+    let text = message;
+    if (SEND_USERNAME === 'true') {
+        text = `Message from user ${user.username}: ${text}`;
     }
 
-    const command = commandNames.find(cmd => message.toLowerCase().startsWith(cmd));
-    if (command) {
-        if (elapsedTime < COOLDOWN_DURATION) {
-            bot.say(channel, `Cooldown active. Please wait ${COOLDOWN_DURATION - elapsedTime.toFixed(1)} seconds before sending another message.`);
-            return;
-        }
-        lastResponseTime = currentTime; // Update the last response time
-
-        let text = message.slice(command.length).trim();
-        if (SEND_USERNAME === 'true') {
-            text = `Message from user ${user.username}: ${text}`;
-        }
-
+    try {
         const response = await openaiOps.make_openai_call(text);
+
         if (response.length > maxLength) {
             const messages = response.match(new RegExp(`.{1,${maxLength}}`, 'g'));
             messages.forEach((msg, index) => {
@@ -124,8 +112,11 @@ bot.onMessage(async (channel, user, message, self) => {
                 console.error('TTS Error:', error);
             }
         }
+    } catch (error) {
+        console.error('OpenAI応答エラー:', error);
     }
 });
+
 
 app.ws('/check-for-updates', (ws, req) => {
     ws.on('message', message => {
