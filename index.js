@@ -81,7 +81,7 @@ bot.onMessage(async (channel, user, message, self) => {
 
     if (elapsedTime < COOLDOWN_DURATION) return; // クールダウン中なら無視
 
-    if (message.trim().length < 5) return; // 短すぎるメッセージは無視
+    if (message.trim().length < 1) return; // 短すぎるメッセージは無視
 
     lastResponseTime = currentTime;
 
